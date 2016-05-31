@@ -7,7 +7,7 @@ namespace BluwolfIcons
 	/// <summary>
 	/// A PNG (Portable Network Graphics) image inside an icon.
 	/// </summary>
-	public class PngIconImage : IIconImage
+	public sealed class PngIconImage : IIconImage
 	{
 		/// <summary>
 		/// The original image.
@@ -55,7 +55,7 @@ namespace BluwolfIcons
 		#region IDisposable Support
 		private bool disposedValue = false; // To detect redundant calls
 
-		protected virtual void Dispose(bool disposing)
+		private void Dispose(bool disposing)
 		{
 			if (!disposedValue)
 			{

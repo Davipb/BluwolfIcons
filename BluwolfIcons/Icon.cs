@@ -7,17 +7,17 @@ namespace BluwolfIcons
 	/// <summary>
 	/// Represents an icon image file.
 	/// </summary>
-	public class Icon : IDisposable
+	public sealed class Icon : IDisposable
 	{
 		public IList<IIconImage> Images { get; } = new List<IIconImage>();
 
 		/// <summary>
 		/// Saves this icon to a specified file.
 		/// </summary>
-		/// <param name="filename">The file to save this icon to.</param>
-		public void Save(string filename)
+		/// <param name="fileName">The file to save this icon to.</param>
+		public void Save(string fileName)
 		{
-			using (var stream = File.Open(filename, FileMode.Create))
+			using (var stream = File.Open(fileName, FileMode.Create))
 			{
 				Save(stream);
 			}
@@ -87,7 +87,7 @@ namespace BluwolfIcons
 		#region IDisposable Support
 		private bool disposedValue = false; // To detect redundant calls
 
-		protected virtual void Dispose(bool disposing)
+		private void Dispose(bool disposing)
 		{
 			if (!disposedValue)
 			{

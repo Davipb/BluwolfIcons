@@ -9,7 +9,7 @@ namespace BluwolfIcons
 	/// <summary>
 	/// A BMP (Bitmap) image inside an icon.
 	/// </summary>
-	public class BmpIconImage : IIconImage
+	public sealed class BmpIconImage : IIconImage
 	{
 		const int BmpFileHeaderSize = 14;
 
@@ -127,7 +127,7 @@ namespace BluwolfIcons
 		#region IDisposable Support
 		private bool disposedValue = false; // To detect redundant calls
 
-		protected virtual void Dispose(bool disposing)
+		private void Dispose(bool disposing)
 		{
 			if (!disposedValue)
 			{
