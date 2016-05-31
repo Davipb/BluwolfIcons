@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 
 namespace BluwolfIcons
@@ -49,8 +48,8 @@ namespace BluwolfIcons
 
 				foreach (var image in Images)
 				{
-					writer.Write((byte)image.Image.Width);
-					writer.Write((byte)image.Image.Height);
+					writer.Write((byte)image.Width);
+					writer.Write((byte)image.Height);
 
 					// Number of colors in the palette. Since we always save the image ourselves (with no palette), hardcode this to 0 (No palette).
 					writer.Write((byte)0);
@@ -58,7 +57,7 @@ namespace BluwolfIcons
 					writer.Write((byte)0);
 					// Color planes. Since we save the images ourselves, this is 1.
 					writer.Write((ushort)1);
-					writer.Write((ushort)Image.GetPixelFormatSize(image.Image.PixelFormat));
+					writer.Write((ushort)image.BitsPerPixel);
 
 					pendingImages.Add(writer.BaseStream.Position, image);
 

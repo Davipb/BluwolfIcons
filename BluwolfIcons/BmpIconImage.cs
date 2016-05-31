@@ -13,7 +13,44 @@ namespace BluwolfIcons
 		/// <summary>
 		/// The original image.
 		/// </summary>
-		public Bitmap Image { get; set; }
+		public Bitmap OriginalImage { get; set; }
+
+		/// <summary>
+		/// This image's width.
+		/// </summary>
+		public int Width => OriginalImage.Width;
+
+		/// <summary>
+		/// This image's height.
+		/// </summary>
+		public int Height
+		{
+			get
+			{
+				if (GenerateTransparencyMap)
+					return OriginalImage.Height;
+
+				// If the image already contains the transparency map, we should report its size as half the real size
+				// (The transparency map takes 50% of the image)
+				return OriginalImage.Height / 2;
+			}
+		}
+
+		/// <summary>
+		/// This image's bits per pixel.
+		/// </summary>
+		public int BitsPerPixel
+		{
+			get
+			{
+				// We always standardize the bit depth when generating the transparency map
+				if (GenerateTransparencyMap)
+					return 24;
+
+				// If not generating the transparency map, we'll just copy the original image
+				return Image.GetPixelFormatSize(OriginalImage.PixelFormat);
+			}
+		}
 
 		/// <summary>
 		/// Whether a transparency map should be generated automatically for this image.
@@ -32,7 +69,7 @@ namespace BluwolfIcons
 		/// <param name="image">The original image to use in this icon image.</param>
 		public BmpIconImage(Bitmap image)
 		{
-			Image = image;
+			OriginalImage = image;
 		}
 
 		/// <summary>
@@ -44,8 +81,8 @@ namespace BluwolfIcons
 			Bitmap result = null;
 			if (GenerateTransparencyMap)
 			{
-				// To avoid dealing with all possible formats, we'll standardize to 32-bit per pixel ARGB.
-				var normalized = Image.Clone(new Rectangle(Point.Empty, Image.Size), PixelFormat.Format32bppArgb);
+				// To avoid dealing with all possible formats, we'll standardize it
+				var normalized = OriginalImage.Clone(new Rectangle(Point.Empty, OriginalImage.Size), PixelFormat.Format24bppRgb);
 				result = new Bitmap(normalized.Width, normalized.Height * 2, normalized.PixelFormat);
 
 				var normalizedData = normalized.LockBits(new Rectangle(Point.Empty, normalized.Size), ImageLockMode.ReadOnly, normalized.PixelFormat);
@@ -70,7 +107,7 @@ namespace BluwolfIcons
 			else
 			{
 				// We copy the actual image because it'll be disposed later
-				result = Image.Clone(new Rectangle(Point.Empty, Image.Size), Image.PixelFormat);
+				result = OriginalImage.Clone(new Rectangle(Point.Empty, OriginalImage.Size), OriginalImage.PixelFormat);
 			}
 
 			using (var stream = new MemoryStream())

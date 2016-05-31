@@ -1,6 +1,4 @@
-﻿using System.Drawing;
-
-namespace BluwolfIcons
+﻿namespace BluwolfIcons
 {
 	/// <summary>
 	/// An image contained inside an icon.
@@ -8,9 +6,19 @@ namespace BluwolfIcons
 	public interface IIconImage
 	{
 		/// <summary>
-		/// The original image.
+		/// This image's width.
 		/// </summary>
-		Bitmap Image { get; set; }
+		int Width { get; }
+
+		/// <summary>
+		/// This image's height.
+		/// </summary>
+		int Height { get; }
+
+		/// <summary>
+		/// This image's bits per pixel.
+		/// </summary>
+		int BitsPerPixel { get; }
 
 		/// <summary>
 		/// Generates the icon image data for this image.
