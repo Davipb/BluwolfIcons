@@ -1,6 +1,7 @@
 ﻿using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace BluwolfIcons
@@ -10,6 +11,8 @@ namespace BluwolfIcons
 	/// </summary>
 	public class BmpIconImage : IIconImage
 	{
+		const int BmpFileHeaderSize = 14;
+
 		/// <summary>
 		/// The original image.
 		/// </summary>
@@ -112,9 +115,12 @@ namespace BluwolfIcons
 
 			using (var stream = new MemoryStream())
 			{
-				result.Save(stream, ImageFormat.MemoryBmp);
+				result.Save(stream, ImageFormat.Bmp);
 				result.Dispose();
-				return stream.GetBuffer();
+
+				// Remove the BMPFILEHEADER, turning it into a Memory BMP.
+				// Using ImageFormat.MemoryBmp in .Save DOES NOT work, we have to remove the header manually.
+				return stream.GetBuffer().Skip(BmpFileHeaderSize).ToArray();
 			}
 		}
 	}
