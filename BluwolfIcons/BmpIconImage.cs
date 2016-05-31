@@ -8,7 +8,7 @@ namespace BluwolfIcons
 	/// <summary>
 	/// A BMP (Bitmap) image inside an icon.
 	/// </summary>
-	public class BmpIconImage
+	public class BmpIconImage : IIconImage
 	{
 		/// <summary>
 		/// The original image.
