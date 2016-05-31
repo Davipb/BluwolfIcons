@@ -1,5 +1,7 @@
-﻿using System;
-using System.Drawing;
+﻿using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
+using System.Runtime.InteropServices;
 
 namespace BluwolfIcons
 {
@@ -18,20 +20,11 @@ namespace BluwolfIcons
 		/// Set to <c>false</c> if the image already contains a transparency map. See remarks for more info.
 		/// </summary>
 		/// <remarks>
-		/// <para>BMP images inside icons are stored with an extra transparency map above the actual image data.
+		/// BMP images inside icons are stored with an extra transparency map above the actual image data.
 		/// That transparency map is a 1-bit per pixel AND mask that defines if a pixel is visible or not,
-		/// allowing for 1-bit transparency.</para>
-		/// <para>When generating the transparency map, <see cref="TransparencyTolerance"/> will be used for natively
-		/// transparent image formats.</para>
+		/// allowing for 1-bit transparency.
 		/// </remarks>
 		public bool GenerateTransparencyMap { get; set; } = true;
-
-		/// <summary>
-		/// When <see cref="GenerateTransparencyMap"/> is set to <c>true</c>, this defines the cutoff point
-		/// when generating the 1-bit transparency map. Alphas below this value will be considered transparent,
-		/// and those above or equal to it, visible.
-		/// </summary>
-		public byte TransparencyTolerance { get; set; } = 128;
 
 		/// <summary>
 		/// Creates a new BMP icon image, with <paramref name="image"/> as its original image.
@@ -48,7 +41,44 @@ namespace BluwolfIcons
 		/// <returns>The BMP icon image data for this image.</returns>
 		public byte[] GetData()
 		{
-			throw new NotImplementedException();
+			Bitmap result = null;
+			if (GenerateTransparencyMap)
+			{
+				// To avoid dealing with all possible formats, we'll standardize to 32-bit per pixel ARGB.
+				var normalized = Image.Clone(new Rectangle(Point.Empty, Image.Size), PixelFormat.Format32bppArgb);
+				result = new Bitmap(normalized.Width, normalized.Height * 2, normalized.PixelFormat);
+
+				var normalizedData = normalized.LockBits(new Rectangle(Point.Empty, normalized.Size), ImageLockMode.ReadOnly, normalized.PixelFormat);
+				var resultData = result.LockBits(new Rectangle(Point.Empty, result.Size), ImageLockMode.WriteOnly, result.PixelFormat);
+
+				byte[] buffer = new byte[normalizedData.Stride * normalizedData.Height];
+
+				// The transparency map must appear before the actual image, so we copy it now.
+				// Buffer will be set to all 0s, so the whole image will be visible.
+				// TODO: Implement support for already-transparent images
+				Marshal.Copy(buffer, 0, resultData.Scan0, buffer.Length);
+
+				// Now we copy the actual image.
+				Marshal.Copy(normalizedData.Scan0, buffer, 0, buffer.Length);
+				Marshal.Copy(buffer, 0, resultData.Scan0 + buffer.Length, buffer.Length);
+
+				normalized.UnlockBits(normalizedData);
+				normalized.Dispose();
+
+				result.UnlockBits(resultData);
+			}
+			else
+			{
+				// We copy the actual image because it'll be disposed later
+				result = Image.Clone(new Rectangle(Point.Empty, Image.Size), Image.PixelFormat);
+			}
+
+			using (var stream = new MemoryStream())
+			{
+				result.Save(stream, ImageFormat.MemoryBmp);
+				result.Dispose();
+				return stream.GetBuffer();
+			}
 		}
 	}
 }
