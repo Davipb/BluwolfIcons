@@ -123,5 +123,30 @@ namespace BluwolfIcons
 				return stream.GetBuffer().Skip(BmpFileHeaderSize).ToArray();
 			}
 		}
+
+		#region IDisposable Support
+		private bool disposedValue = false; // To detect redundant calls
+
+		protected virtual void Dispose(bool disposing)
+		{
+			if (!disposedValue)
+			{
+				if (disposing)
+				{
+					OriginalImage.Dispose();
+				}
+
+				disposedValue = true;
+			}
+		}
+
+		/// <summary>
+		/// Disposes of this <see cref="BmpIconImage"/> and the <see cref="OriginalImage"/> associated with it.
+		/// </summary>
+		public void Dispose()
+		{
+			Dispose(true);
+		}
+		#endregion
 	}
 }

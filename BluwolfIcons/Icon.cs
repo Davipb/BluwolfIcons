@@ -7,7 +7,7 @@ namespace BluwolfIcons
 	/// <summary>
 	/// Represents an icon image file.
 	/// </summary>
-	public class Icon
+	public class Icon : IDisposable
 	{
 		public IList<IIconImage> Images { get; } = new List<IIconImage>();
 
@@ -83,5 +83,31 @@ namespace BluwolfIcons
 				}
 			}
 		}
+
+		#region IDisposable Support
+		private bool disposedValue = false; // To detect redundant calls
+
+		protected virtual void Dispose(bool disposing)
+		{
+			if (!disposedValue)
+			{
+				if (disposing)
+				{
+					foreach (var image in Images)
+						image.Dispose();
+				}
+
+				disposedValue = true;
+			}
+		}
+
+		/// <summary>
+		/// Disposes of this <see cref="Icon"/> and all <see cref="IIconImage"/> associated with it.
+		/// </summary>
+		public void Dispose()
+		{
+			Dispose(true);
+		}
+		#endregion
 	}
 }
