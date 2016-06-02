@@ -1,11 +1,9 @@
-﻿using System;
-
-namespace BluwolfIcons
+﻿namespace BluwolfIcons
 {
 	/// <summary>
 	/// An image contained inside an icon.
 	/// </summary>
-	public interface IIconImage : IDisposable
+	public interface IIconImage
 	{
 		/// <summary>
 		/// This image's width.

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Windows.Media.Imaging;
 
 namespace BluwolfIcons.Demo
 {
@@ -16,13 +17,28 @@ namespace BluwolfIcons.Demo
 				foreach (var image in icon.Images.OfType<PngIconImage>())
 				{
 					Console.WriteLine($"{image.Width}x{image.Height}x{image.BitsPerPixel}\t{saveIndex}.png");
-					image.OriginalImage.Save($"{saveIndex}.png");
+
+					var encoder = new PngBitmapEncoder();
+					encoder.Frames.Add(BitmapFrame.Create(image.OriginalImage));
+					using (var stream = File.Open($"{saveIndex}.png", FileMode.Create))
+					{
+						encoder.Save(stream);
+					}
+
 					saveIndex++;
 				}
+
 				foreach (var image in icon.Images.OfType<BmpIconImage>())
 				{
 					Console.WriteLine($"{image.Width}x{image.Height}x{image.BitsPerPixel}\t{saveIndex}.bmp");
-					image.OriginalImage.Save($"{saveIndex}.bmp");
+
+					var encoder = new BmpBitmapEncoder();
+					encoder.Frames.Add(BitmapFrame.Create(image.OriginalImage));
+					using (var stream = File.Open($"{saveIndex}.bmp", FileMode.Create))
+					{
+						encoder.Save(stream);
+					}
+
 					saveIndex++;
 				}
 
@@ -36,7 +52,11 @@ namespace BluwolfIcons.Demo
 				var icon = new Icon();
 				foreach (var image in images)
 				{
-					var bitmap = new System.Drawing.Bitmap(image);
+					var bitmap = new BitmapImage();
+					bitmap.BeginInit();
+					bitmap.UriSource = new Uri(Path.GetFullPath(image));
+					bitmap.CacheOption = BitmapCacheOption.OnLoad;
+					bitmap.EndInit();
 
 					icon.Images.Add(new PngIconImage(bitmap));
 					icon.Images.Add(new BmpIconImage(bitmap));

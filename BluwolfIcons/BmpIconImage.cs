@@ -1,8 +1,6 @@
-﻿using System.Drawing;
-using System.Drawing.Imaging;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
+using System.Windows.Media.Imaging;
 
 namespace BluwolfIcons
 {
@@ -16,12 +14,12 @@ namespace BluwolfIcons
 		/// <summary>
 		/// The original image.
 		/// </summary>
-		public Bitmap OriginalImage { get; set; }
+		public BitmapSource OriginalImage { get; set; }
 
 		/// <summary>
 		/// This image's width.
 		/// </summary>
-		public int Width => OriginalImage.Width;
+		public int Width => OriginalImage.PixelWidth;
 
 		/// <summary>
 		/// This image's height.
@@ -31,11 +29,11 @@ namespace BluwolfIcons
 			get
 			{
 				if (GenerateTransparencyMap)
-					return OriginalImage.Height;
+					return OriginalImage.PixelHeight;
 
 				// If the image already contains the transparency map, we should report its size as half the real size
 				// (The transparency map takes 50% of the image)
-				return OriginalImage.Height / 2;
+				return OriginalImage.PixelHeight / 2;
 			}
 		}
 
@@ -48,10 +46,10 @@ namespace BluwolfIcons
 			{
 				// We always standardize the bit depth when generating the transparency map
 				if (GenerateTransparencyMap)
-					return 24;
+					return 32;
 
 				// If not generating the transparency map, we'll just copy the original image
-				return Image.GetPixelFormatSize(OriginalImage.PixelFormat);
+				return OriginalImage.Format.BitsPerPixel;
 			}
 		}
 
@@ -70,7 +68,7 @@ namespace BluwolfIcons
 		/// Creates a new BMP icon image, with <paramref name="image"/> as its original image.
 		/// </summary>
 		/// <param name="image">The original image to use in this icon image.</param>
-		public BmpIconImage(Bitmap image)
+		public BmpIconImage(BitmapSource image)
 		{
 			OriginalImage = image;
 		}
@@ -81,72 +79,38 @@ namespace BluwolfIcons
 		/// <returns>The BMP icon image data for this image.</returns>
 		public byte[] GetData()
 		{
-			Bitmap result = null;
+			BitmapSource result = null;
+
 			if (GenerateTransparencyMap)
 			{
-				// To avoid dealing with all possible formats, we'll standardize it
-				var normalized = OriginalImage.Clone(new Rectangle(Point.Empty, OriginalImage.Size), PixelFormat.Format24bppRgb);
-				result = new Bitmap(normalized.Width, normalized.Height * 2, normalized.PixelFormat);
+				// The transparency map has to be above the actual image, so we just copy the original image's data at the bottom
+				// All bytes before that will be set to 0, which is what we want (0 == Visible)
+				byte[] buffer = new byte[OriginalImage.PixelWidth * OriginalImage.PixelHeight * 4 * 2];
+				OriginalImage.CopyPixels(buffer, OriginalImage.PixelWidth * 4, buffer.Length / 2);
 
-				var normalizedData = normalized.LockBits(new Rectangle(Point.Empty, normalized.Size), ImageLockMode.ReadOnly, normalized.PixelFormat);
-				var resultData = result.LockBits(new Rectangle(Point.Empty, result.Size), ImageLockMode.WriteOnly, result.PixelFormat);
-
-				byte[] buffer = new byte[normalizedData.Stride * normalizedData.Height];
-
-				// The transparency map must appear before the actual image, so we copy it now.
-				// Buffer will be set to all 0s, so the whole image will be visible.
-				// TODO: Implement support for already-transparent images
-				Marshal.Copy(buffer, 0, resultData.Scan0, buffer.Length);
-
-				// Now we copy the actual image.
-				Marshal.Copy(normalizedData.Scan0, buffer, 0, buffer.Length);
-				Marshal.Copy(buffer, 0, resultData.Scan0 + buffer.Length, buffer.Length);
-
-				normalized.UnlockBits(normalizedData);
-				normalized.Dispose();
-
-				result.UnlockBits(resultData);
+				result = BitmapSource.Create(
+					OriginalImage.PixelWidth, OriginalImage.PixelHeight * 2,
+					OriginalImage.DpiX, OriginalImage.DpiY,
+					OriginalImage.Format,
+					OriginalImage.Palette,
+					buffer,
+					OriginalImage.PixelWidth * 4);
 			}
 			else
 			{
-				// We copy the actual image because it'll be disposed later
-				result = OriginalImage.Clone(new Rectangle(Point.Empty, OriginalImage.Size), OriginalImage.PixelFormat);
+				result = OriginalImage;
 			}
 
 			using (var stream = new MemoryStream())
 			{
-				result.Save(stream, ImageFormat.Bmp);
-				result.Dispose();
+				var encoder = new BmpBitmapEncoder();
+				encoder.Frames.Add(BitmapFrame.Create(result));
+				encoder.Save(stream);
 
 				// Remove the BMPFILEHEADER, turning it into a Memory BMP.
 				// Using ImageFormat.MemoryBmp in .Save DOES NOT work, we have to remove the header manually.
 				return stream.GetBuffer().Skip(BmpFileHeaderSize).ToArray();
 			}
 		}
-
-		#region IDisposable Support
-		private bool disposedValue = false; // To detect redundant calls
-
-		private void Dispose(bool disposing)
-		{
-			if (!disposedValue)
-			{
-				if (disposing)
-				{
-					OriginalImage.Dispose();
-				}
-
-				disposedValue = true;
-			}
-		}
-
-		/// <summary>
-		/// Disposes of this <see cref="BmpIconImage"/> and the <see cref="OriginalImage"/> associated with it.
-		/// </summary>
-		public void Dispose()
-		{
-			Dispose(true);
-		}
-		#endregion
 	}
 }

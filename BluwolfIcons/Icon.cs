@@ -1,17 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
+using System.Windows.Media.Imaging;
 
 namespace BluwolfIcons
 {
 	/// <summary>
 	/// Represents an icon image file.
 	/// </summary>
-	public sealed class Icon : IDisposable
+	public sealed class Icon
 	{
 		private static readonly byte[] PngHeader = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
 
@@ -143,13 +141,19 @@ namespace BluwolfIcons
 						// File is PNG
 						using (var memory = new MemoryStream(data, false))
 						{
-							result.Images.Add(
-								new PngIconImage(new System.Drawing.Bitmap(memory))
-								);
+							var image = new BitmapImage();
+							image.BeginInit();
+							image.StreamSource = memory;
+							image.CacheOption = BitmapCacheOption.OnLoad;
+							image.EndInit();
+
+							result.Images.Add(new PngIconImage(image));
 						}
 					}
 					else
 					{
+
+
 						// File is BMP
 						// We need to reconstruct the file header so System.Drawing.Bitmap can read it properly
 						byte[] header = new byte[14];
@@ -165,37 +169,19 @@ namespace BluwolfIcons
 							// Reserved, always 0
 							headerWriter.Write(0u);
 							// The offset at which the pixel array can be found
-							// This is never really used, so calculating it is unnecessary, just fill it in with zeros
-							headerWriter.Write(0u);
+							// The array is right after the DIB Header, whose length is specified right at the start of the data as a UInt32
+							headerWriter.Write((uint)header.Length + BitConverter.ToUInt32(data, 0));
 						}
 
 						data = header.Concat(data).ToArray();
 
 						using (var memory = new MemoryStream(data, false))
 						{
-							// We need to manually copy the bitmap created from our data to a fresh bitmap
-							// This apparently fixes any internal errors that prevent you from saving it later
-							// Why? Ask the GDI+ deities.
-
-							var originalBitmap = new Bitmap(memory);
-
-
-							var newBitmap = new Bitmap(originalBitmap.Width, originalBitmap.Height, originalBitmap.PixelFormat);
-
-							var originalData = originalBitmap.LockBits(new Rectangle(Point.Empty, originalBitmap.Size), ImageLockMode.ReadOnly, originalBitmap.PixelFormat);
-							var newData = newBitmap.LockBits(new Rectangle(Point.Empty, newBitmap.Size), ImageLockMode.WriteOnly, newBitmap.PixelFormat);
-
-							byte[] buffer = new byte[originalData.Stride * originalData.Height];
-							Marshal.Copy(originalData.Scan0, buffer, 0, buffer.Length);
-							Marshal.Copy(buffer, 0, newData.Scan0, buffer.Length);
-
-							originalBitmap.UnlockBits(originalData);
-							originalBitmap.Dispose();
-							newBitmap.UnlockBits(newData);
+							var decoder = new BmpBitmapDecoder(memory, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
 
 							// We need to set the GenerateTransparencyMap option to false, since the loaded image already has that map
 							result.Images.Add(
-								new BmpIconImage(newBitmap) { GenerateTransparencyMap = false }
+								new BmpIconImage(decoder.Frames[0]) { GenerateTransparencyMap = false }
 								);
 						}
 					}
@@ -204,32 +190,6 @@ namespace BluwolfIcons
 				return result;
 			}
 		}
-
-		#region IDisposable Support
-		private bool disposedValue = false; // To detect redundant calls
-
-		private void Dispose(bool disposing)
-		{
-			if (!disposedValue)
-			{
-				if (disposing)
-				{
-					foreach (var image in Images)
-						image.Dispose();
-				}
-
-				disposedValue = true;
-			}
-		}
-
-		/// <summary>
-		/// Disposes of this <see cref="Icon"/> and all <see cref="IIconImage"/> associated with it.
-		/// </summary>
-		public void Dispose()
-		{
-			Dispose(true);
-		}
-		#endregion
 
 
 		[Serializable]
