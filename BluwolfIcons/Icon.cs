@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace BluwolfIcons
 {
@@ -9,6 +13,8 @@ namespace BluwolfIcons
 	/// </summary>
 	public sealed class Icon : IDisposable
 	{
+		private static readonly byte[] PngHeader = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+
 		public IList<IIconImage> Images { get; } = new List<IIconImage>();
 
 		/// <summary>
@@ -84,6 +90,121 @@ namespace BluwolfIcons
 			}
 		}
 
+		/// <summary>
+		/// Loads an icon from a specified file.
+		/// </summary>
+		/// <param name="fileName">The file to load the icon from.</param>
+		/// <returns>The loaded icon.</returns>
+		/// <exception cref="IconParseException">Thrown when the Icon file contains invalid data.</exception>
+		public static Icon Load(string fileName)
+		{
+			using (var stream = File.OpenRead(fileName))
+				return Load(stream);
+		}
+
+		/// <summary>
+		/// Loads an icon from a stream.
+		/// </summary>
+		/// <param name="stream">The stream to load the icon from.</param>
+		/// <returns>The loaded icon.</returns>
+		/// <exception cref="IconParseException">Thrown when the Icon file contains invalid data.</exception>
+		public static Icon Load(Stream stream)
+		{
+			if (!stream.CanSeek)
+				throw new ArgumentException("Stream must support seeking.", nameof(stream));
+
+			using (var reader = new BinaryReader(stream))
+			{
+				if (reader.ReadUInt16() != 0)
+					throw new IconParseException("Invalid file header.");
+
+				if (reader.ReadUInt16() != 1)
+					throw new IconParseException("Invalid file header.");
+
+				var imageCount = (int)reader.ReadUInt16();
+				var result = new Icon();
+
+				for (int i = 0; i < imageCount; i++)
+				{
+					// This skips directly to the info about where the data is stored
+					reader.ReadBytes(8);
+
+					var size = (int)reader.ReadUInt32();
+					var offset = (long)reader.ReadUInt32();
+
+					var currentOffset = reader.BaseStream.Position;
+
+					reader.BaseStream.Seek(offset, SeekOrigin.Begin);
+					var data = reader.ReadBytes(size);
+					reader.BaseStream.Seek(currentOffset, SeekOrigin.Begin);
+
+					if (data.Take(PngHeader.Length).SequenceEqual(PngHeader))
+					{
+						// File is PNG
+						using (var memory = new MemoryStream(data, false))
+						{
+							result.Images.Add(
+								new PngIconImage(new System.Drawing.Bitmap(memory))
+								);
+						}
+					}
+					else
+					{
+						// File is BMP
+						// We need to reconstruct the file header so System.Drawing.Bitmap can read it properly
+						byte[] header = new byte[14];
+
+						using (var headerMemory = new MemoryStream(header))
+						using (var headerWriter = new BinaryWriter(headerMemory))
+						{
+							// Fixed starting bytes to identify the file as BMP
+							headerWriter.Write((byte)0x42);
+							headerWriter.Write((byte)0x4D);
+							// Size of the BMP
+							headerWriter.Write((uint)(data.Length + header.Length));
+							// Reserved, always 0
+							headerWriter.Write(0u);
+							// The offset at which the pixel array can be found
+							// This is never really used, so calculating it is unnecessary, just fill it in with zeros
+							headerWriter.Write(0u);
+						}
+
+						data = header.Concat(data).ToArray();
+
+						using (var memory = new MemoryStream(data, false))
+						{
+							// We need to manually copy the bitmap created from our data to a fresh bitmap
+							// This apparently fixes any internal errors that prevent you from saving it later
+							// Why? Ask the GDI+ deities.
+
+							var originalBitmap = new Bitmap(memory);
+
+
+							var newBitmap = new Bitmap(originalBitmap.Width, originalBitmap.Height, originalBitmap.PixelFormat);
+
+							var originalData = originalBitmap.LockBits(new Rectangle(Point.Empty, originalBitmap.Size), ImageLockMode.ReadOnly, originalBitmap.PixelFormat);
+							var newData = newBitmap.LockBits(new Rectangle(Point.Empty, newBitmap.Size), ImageLockMode.WriteOnly, newBitmap.PixelFormat);
+
+							byte[] buffer = new byte[originalData.Stride * originalData.Height];
+							Marshal.Copy(originalData.Scan0, buffer, 0, buffer.Length);
+							Marshal.Copy(buffer, 0, newData.Scan0, buffer.Length);
+
+							originalBitmap.UnlockBits(originalData);
+							originalBitmap.Dispose();
+							newBitmap.UnlockBits(newData);
+
+							// We need to set the GenerateTransparencyMap option to false, since the loaded image already has that map
+							result.Images.Add(
+								new BmpIconImage(newBitmap) { GenerateTransparencyMap = false }
+								);
+						}
+					}
+				}
+
+				return result;
+			}
+		}
+
 		#region IDisposable Support
 		private bool disposedValue = false; // To detect redundant calls
 
@@ -109,5 +230,17 @@ namespace BluwolfIcons
 			Dispose(true);
 		}
 		#endregion
+
+
+		[Serializable]
+		public class IconParseException : Exception
+		{
+			public IconParseException() { }
+			public IconParseException(string message) : base(message) { }
+			public IconParseException(string message, Exception inner) : base(message, inner) { }
+			protected IconParseException(
+			  System.Runtime.Serialization.SerializationInfo info,
+			  System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
+		}
 	}
 }
