@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Windows.Media.Imaging;
 
 namespace BluwolfIcons
@@ -93,7 +92,6 @@ namespace BluwolfIcons
 		/// </summary>
 		/// <param name="fileName">The file to load the icon from.</param>
 		/// <returns>The loaded icon.</returns>
-		/// <exception cref="IconParseException">Thrown when the Icon file contains invalid data.</exception>
 		public static Icon Load(string fileName)
 		{
 			using (var stream = File.OpenRead(fileName))
@@ -105,102 +103,25 @@ namespace BluwolfIcons
 		/// </summary>
 		/// <param name="stream">The stream to load the icon from.</param>
 		/// <returns>The loaded icon.</returns>
-		/// <exception cref="IconParseException">Thrown when the Icon file contains invalid data.</exception>
 		public static Icon Load(Stream stream)
-		{
-			if (!stream.CanSeek)
-				throw new ArgumentException("Stream must support seeking.", nameof(stream));
+			=> Load(new IconBitmapDecoder(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad));
 
-			using (var reader = new BinaryReader(stream))
+		/// <summary>
+		/// Loads an icon from a bitmap decoder.
+		/// </summary>
+		/// <param name="decoder">The decoder to use when loading the icon. Every Frame decoded will be recognized as one individual image.</param>
+		/// <returns>The loaded icon</returns>
+		public static Icon Load(BitmapDecoder decoder)
+		{
+			var result = new Icon();
+
+			foreach (var frame in decoder.Frames)
 			{
-				if (reader.ReadUInt16() != 0)
-					throw new IconParseException("Invalid file header.");
-
-				if (reader.ReadUInt16() != 1)
-					throw new IconParseException("Invalid file header.");
-
-				var imageCount = (int)reader.ReadUInt16();
-				var result = new Icon();
-
-				for (int i = 0; i < imageCount; i++)
-				{
-					// This skips directly to the info about where the data is stored
-					reader.ReadBytes(8);
-
-					var size = (int)reader.ReadUInt32();
-					var offset = (long)reader.ReadUInt32();
-
-					var currentOffset = reader.BaseStream.Position;
-
-					reader.BaseStream.Seek(offset, SeekOrigin.Begin);
-					var data = reader.ReadBytes(size);
-					reader.BaseStream.Seek(currentOffset, SeekOrigin.Begin);
-
-					if (data.Take(PngHeader.Length).SequenceEqual(PngHeader))
-					{
-						// File is PNG
-						using (var memory = new MemoryStream(data, false))
-						{
-							var image = new BitmapImage();
-							image.BeginInit();
-							image.StreamSource = memory;
-							image.CacheOption = BitmapCacheOption.OnLoad;
-							image.EndInit();
-
-							result.Images.Add(new PngIconImage(image));
-						}
-					}
-					else
-					{
-
-
-						// File is BMP
-						// We need to reconstruct the file header so System.Drawing.Bitmap can read it properly
-						byte[] header = new byte[14];
-
-						using (var headerMemory = new MemoryStream(header))
-						using (var headerWriter = new BinaryWriter(headerMemory))
-						{
-							// Fixed starting bytes to identify the file as BMP
-							headerWriter.Write((byte)0x42);
-							headerWriter.Write((byte)0x4D);
-							// Size of the BMP
-							headerWriter.Write((uint)(data.Length + header.Length));
-							// Reserved, always 0
-							headerWriter.Write(0u);
-							// The offset at which the pixel array can be found
-							// The array is right after the DIB Header, whose length is specified right at the start of the data as a UInt32
-							headerWriter.Write((uint)header.Length + BitConverter.ToUInt32(data, 0));
-						}
-
-						data = header.Concat(data).ToArray();
-
-						using (var memory = new MemoryStream(data, false))
-						{
-							var decoder = new BmpBitmapDecoder(memory, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
-
-							// We need to set the GenerateTransparencyMap option to false, since the loaded image already has that map
-							result.Images.Add(
-								new BmpIconImage(decoder.Frames[0]) { GenerateTransparencyMap = false }
-								);
-						}
-					}
-				}
-
-				return result;
+				result.Images.Add(new PngIconImage(frame));
+				result.Images.Add(new BmpIconImage(frame));
 			}
-		}
 
-
-		[Serializable]
-		public class IconParseException : Exception
-		{
-			public IconParseException() { }
-			public IconParseException(string message) : base(message) { }
-			public IconParseException(string message, Exception inner) : base(message, inner) { }
-			protected IconParseException(
-			  System.Runtime.Serialization.SerializationInfo info,
-			  System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
+			return result;
 		}
 	}
 }

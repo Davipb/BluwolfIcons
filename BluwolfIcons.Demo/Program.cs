@@ -9,7 +9,7 @@ namespace BluwolfIcons.Demo
 	{
 		static void Main(string[] args)
 		{
-			if (args.Length == 0 || args[0] == "read")
+			if (args.Length > 0 && args[0] == "read")
 			{
 				var icon = Icon.Load("icon.ico");
 
