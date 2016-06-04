@@ -10,8 +10,6 @@ namespace BluwolfIcons
 	/// </summary>
 	public sealed class Icon
 	{
-		private static readonly byte[] PngHeader = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
-
 		public IList<IIconImage> Images { get; } = new List<IIconImage>();
 
 		/// <summary>
@@ -113,6 +111,9 @@ namespace BluwolfIcons
 		/// <returns>The loaded icon</returns>
 		public static Icon Load(BitmapDecoder decoder)
 		{
+			if (decoder == null)
+				throw new ArgumentNullException(nameof(decoder));
+
 			var result = new Icon();
 
 			foreach (var frame in decoder.Frames)

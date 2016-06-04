@@ -40,18 +40,7 @@ namespace BluwolfIcons
 		/// <summary>
 		/// This image's bits per pixel.
 		/// </summary>
-		public int BitsPerPixel
-		{
-			get
-			{
-				// We always standardize the bit depth when generating the transparency map
-				if (GenerateTransparencyMap)
-					return 32;
-
-				// If not generating the transparency map, we'll just copy the original image
-				return OriginalImage.Format.BitsPerPixel;
-			}
-		}
+		public int BitsPerPixel => OriginalImage.Format.BitsPerPixel;
 
 		/// <summary>
 		/// Whether a transparency map should be generated automatically for this image.
@@ -108,7 +97,6 @@ namespace BluwolfIcons
 				encoder.Save(stream);
 
 				// Remove the BMPFILEHEADER, turning it into a Memory BMP.
-				// Using ImageFormat.MemoryBmp in .Save DOES NOT work, we have to remove the header manually.
 				return stream.GetBuffer().Skip(BmpFileHeaderSize).ToArray();
 			}
 		}
