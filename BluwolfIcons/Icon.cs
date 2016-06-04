@@ -33,8 +33,8 @@ namespace BluwolfIcons
 			if (stream == null)
 				throw new ArgumentNullException(nameof(stream));
 
-			if (!stream.CanSeek)
-				throw new ArgumentException("Stream must support seeking.", nameof(stream));
+			if (!stream.CanWrite)
+				throw new ArgumentException("Stream must support writing.", nameof(stream));
 
 			using (var writer = new BinaryWriter(stream))
 			{
@@ -44,8 +44,8 @@ namespace BluwolfIcons
 				writer.Write((ushort)1);
 				writer.Write((ushort)Images.Count);
 
-				// We'll store images here with a stream position indicating where to write specific image data later
-				var pendingImages = new Dictionary<long, IIconImage>();
+				var pendingImages = new Queue<byte[]>();
+				var offset = 6 + 16 * Images.Count; // Header: 6; Each Image: 16
 
 				foreach (var image in Images)
 				{
@@ -60,28 +60,18 @@ namespace BluwolfIcons
 					writer.Write((ushort)1);
 					writer.Write((ushort)image.BitsPerPixel);
 
-					pendingImages.Add(writer.BaseStream.Position, image);
+					var data = image.GetData();
 
-					// Image size in bytes. Since we can't know this yet, fill it with zeros.
-					writer.Write(0u);
-					// Image data offset from the start of the file. Since we can't know this yet, fill it with zeros.
-					writer.Write(0u);
-				}
-
-				foreach (var image in pendingImages)
-				{
-					var data = image.Value.GetData();
-					var offset = (uint)writer.BaseStream.Position;
-
-					// We need to write specific image data now.
-					writer.BaseStream.Seek(image.Key, SeekOrigin.Begin);
 					writer.Write((uint)data.Length);
-					writer.Write(offset);
+					writer.Write((uint)offset);
 
-					// Return to the proper stream location and write the image data.
-					writer.BaseStream.Seek(offset, SeekOrigin.Begin);
-					writer.Write(data);
+					offset += data.Length;
+					pendingImages.Enqueue(data);
 				}
+
+				while (pendingImages.Count > 0)
+					writer.Write(pendingImages.Dequeue());
+
 			}
 		}
 
