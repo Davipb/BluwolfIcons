@@ -3,6 +3,10 @@
 Bluwolf Icons is a C# .NET library for manipulating icon images (.ico) made using the WIC (Windows Imaging Component), 
 the same technology behind WPF.
 
+**We're on NuGet!**
+
+`Install-Package BluwolfIcons`
+
 **Why not just use .NET's built-in Icon support?**
 
 All the built-in .NET libraries for icon manipulation only support a single icon: 
@@ -57,7 +61,7 @@ var decoder = new PngBitmapDecoder(
 var decoderIcon = Icon.Load(decoder);
 
 // Read the icon in code
-foreach (var image in fileIcon)
+foreach (var image in fileIcon.Images)
 {
 	Console.WriteLine($"{image.Width}x{image.Height}x{image.BitsPerPixel}");
 }

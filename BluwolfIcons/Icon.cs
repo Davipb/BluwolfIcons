@@ -10,6 +10,9 @@ namespace BluwolfIcons
 	/// </summary>
 	public sealed class Icon
 	{
+		/// <summary>
+		/// All the images contained in this icon.
+		/// </summary>
 		public IList<IIconImage> Images { get; } = new List<IIconImage>();
 
 		/// <summary>

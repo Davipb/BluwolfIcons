@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <title>$title$</title>
+    <authors>$author$</authors>
+    <owners>$author$</owners>
+    <licenseUrl>https://github.com/Davipb/BluwolfIcons/raw/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/Davipb/BluwolfIcons</projectUrl>
+    <iconUrl>https://github.com/Davipb/BluwolfIcons/raw/master/BluwolfIcons/icon.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>$description$</description>
+    <releaseNotes>Initial package release.</releaseNotes>
+    <tags>ico icon icons bluwolf</tags>
+    <frameworkAssemblies>
+      <frameworkAssembly assemblyName="PresentationCore" />
+      <frameworkAssembly assemblyName="WindowsBase" />
+    </frameworkAssemblies>
+  </metadata>
+</package>
