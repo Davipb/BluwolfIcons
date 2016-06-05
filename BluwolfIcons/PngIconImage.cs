@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Windows.Media.Imaging;
 
 namespace BluwolfIcons
@@ -8,10 +9,26 @@ namespace BluwolfIcons
 	/// </summary>
 	public sealed class PngIconImage : IIconImage
 	{
+		private BitmapSource originalImage;
+
 		/// <summary>
 		/// The original image.
 		/// </summary>
-		public BitmapSource OriginalImage { get; set; }
+		/// <exception cref="T:System.ArgumentException">Thrown when an image too big is assigned.</exception>
+		public BitmapSource OriginalImage
+		{
+			get { return originalImage; }
+			set
+			{
+				if (value == null)
+					throw new ArgumentNullException(nameof(value));
+
+				if (value.PixelWidth > 256 || value.PixelHeight > 256)
+					throw new ArgumentException("Image can't be bigger than 256 x 256.", nameof(value));
+
+				originalImage = value;
+			}
+		}
 
 		/// <summary>
 		/// This image's width.
@@ -32,8 +49,12 @@ namespace BluwolfIcons
 		/// Creates a new PNG icon image, with <paramref name="image"/> as its original image.
 		/// </summary>
 		/// <param name="image">The original image to use in this icon image.</param>
+		/// <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="image"/> is <c>null</c>.</exception>
 		public PngIconImage(BitmapSource image)
 		{
+			if (image == null)
+				throw new ArgumentNullException(nameof(image));
+
 			OriginalImage = image;
 		}
 
