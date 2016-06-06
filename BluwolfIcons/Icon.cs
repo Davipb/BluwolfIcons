@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Windows.Media.Imaging;
 
 namespace BluwolfIcons
@@ -10,6 +11,8 @@ namespace BluwolfIcons
 	/// </summary>
 	public sealed class Icon
 	{
+		private static readonly byte[] PngFileHeader = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+
 		/// <summary>
 		/// All the images contained in this icon.
 		/// </summary>
@@ -100,7 +103,7 @@ namespace BluwolfIcons
 		/// <summary>
 		/// Loads an icon from a bitmap decoder.
 		/// </summary>
-		/// <param name="decoder">The decoder to use when loading the icon. Every Frame decoded will be recognized as one individual image.</param>
+		/// <param name="decoder">The decoder to use when loading the icon. Every unique Frame decoded will be recognized as one individual image.</param>
 		/// <returns>The loaded icon</returns>
 		public static Icon Load(BitmapDecoder decoder)
 		{
@@ -109,8 +112,33 @@ namespace BluwolfIcons
 
 			var result = new Icon();
 
+			var added = new List<byte[]>();
+
 			foreach (var frame in decoder.Frames)
 			{
+				var encoder = new BmpBitmapEncoder();
+				encoder.Frames.Add(frame);
+				byte[] data = null;
+				using (var stream = new MemoryStream())
+				{
+					encoder.Save(stream);
+					data = stream.GetBuffer();
+				}
+
+				bool duplicate = false;
+				foreach (var alreadyAdded in added)
+				{
+					if (data.SequenceEqual(alreadyAdded))
+					{
+						duplicate = true;
+						break;
+					}
+				}
+
+				if (duplicate)
+					continue;
+
+				added.Add(data);
 				result.Images.Add(new PngIconImage(frame));
 				result.Images.Add(new BmpIconImage(frame));
 			}
