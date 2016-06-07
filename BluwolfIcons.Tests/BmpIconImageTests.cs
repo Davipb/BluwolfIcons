@@ -27,19 +27,19 @@ namespace BluwolfIcons.Tests
 		}
 
 		[TestMethod]
-		public void Constructor_BiggerImageWithMap_DoesntThrowsException()
+		public void Constructor_BiggerImageWithMap_DoesntThrowException()
 		{
-			var bitmap = Helper.GenerateImage(257, 257, PixelFormats.Bgra32);
+			var bitmap = Helper.GenerateImage(256, 512, PixelFormats.Bgra32);
 			var target = new BmpIconImage(bitmap, false);
 
 			Assert.AreEqual(target.OriginalImage, bitmap);
 		}
 
 		[TestMethod]
-		public void SetOriginalImage_BiggerImageTooBigWithMap_DoesntThrowsException()
+		public void SetOriginalImage_BiggerImageTooBigWithMap_DoesntThrowException()
 		{
 			var small = Helper.GenerateImage(16, 16, PixelFormats.Bgra32);
-			var big = Helper.GenerateImage(257, 257, PixelFormats.Bgra32);
+			var big = Helper.GenerateImage(256, 512, PixelFormats.Bgra32);
 
 			var target = new BmpIconImage(small, false);
 			target.OriginalImage = big;

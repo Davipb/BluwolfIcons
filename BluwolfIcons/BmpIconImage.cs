@@ -86,7 +86,7 @@ namespace BluwolfIcons
 			get { return generateTransparencyMap; }
 			set
 			{
-				if (value == false && OriginalImage.PixelHeight > 256)
+				if (value == false && OriginalImage?.PixelHeight > 256)
 					throw new ArgumentException("Can't generate transparency map for an image taller than 256 pixels.", nameof(value));
 
 				generateTransparencyMap = value;
