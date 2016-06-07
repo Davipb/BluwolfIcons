@@ -11,11 +11,11 @@
     <iconUrl>https://github.com/Davipb/BluwolfIcons/raw/master/BluwolfIcons/icon.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
-    <releaseNotes>Initial package release.</releaseNotes>
-    <tags>ico icon icons bluwolf</tags>
+    <releaseNotes>No longer loads Duplicate images when loading an Icon, Fixed null reference when creating a BMP Image with Transparency Map</releaseNotes>
+    <tags>ico icon icons bluwolf wic</tags>
     <frameworkAssemblies>
       <frameworkAssembly assemblyName="PresentationCore" />
       <frameworkAssembly assemblyName="WindowsBase" />
-    </frameworkAssemblies>
+    </frameworkAssemblies>    
   </metadata>
 </package>
