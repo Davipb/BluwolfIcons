@@ -102,7 +102,7 @@
             <summary>
             Loads an icon from a bitmap decoder.
             </summary>
-            <param name="decoder">The decoder to use when loading the icon. Every Frame decoded will be recognized as one individual image.</param>
+            <param name="decoder">The decoder to use when loading the icon. Every unique Frame decoded will be recognized as one individual image.</param>
             <returns>The loaded icon</returns>
         </member>
         <member name="T:BluwolfIcons.IIconImage">
